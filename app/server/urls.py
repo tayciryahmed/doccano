@@ -6,7 +6,7 @@ from .views import ProjectView, DatasetView, DataUpload, LabelView, StatsView, G
 from .views import ProjectsView, DataDownload, DataDownloadFile
 from .views import DemoTextClassification, DemoNamedEntityRecognition, DemoTranslation
 from .api import ProjectViewSet, LabelList, ProjectStatsAPI, LabelDetail, \
-    AnnotationList, AnnotationDetail, DocumentList
+    AnnotationList, AnnotationDetail, DocumentList, DocumentDetail, EntityList, EntityDetail
 
 router = routers.DefaultRouter()
 router.register(r'projects', ProjectViewSet)
@@ -14,12 +14,24 @@ router.register(r'projects', ProjectViewSet)
 
 urlpatterns = [
     path('', IndexView.as_view(), name='index'),
-    path('api/projects/<int:project_id>/stats/', ProjectStatsAPI.as_view(), name='stats-api'),
-    path('api/projects/<int:project_id>/labels/', LabelList.as_view(), name='labels'),
-    path('api/projects/<int:project_id>/labels/<int:label_id>', LabelDetail.as_view(), name='label'),
-    path('api/projects/<int:project_id>/docs/', DocumentList.as_view(), name='docs'),
-    path('api/projects/<int:project_id>/docs/<int:doc_id>/annotations/', AnnotationList.as_view(), name='annotations'),
-    path('api/projects/<int:project_id>/docs/<int:doc_id>/annotations/<int:annotation_id>', AnnotationDetail.as_view(), name='ann'),
+    path('api/projects/<int:project_id>/statistics/',
+         ProjectStatsAPI.as_view(), name='statistics'),
+    path('api/projects/<int:project_id>/labels/',
+         LabelList.as_view(), name='label_list'),
+    path('api/projects/<int:project_id>/labels/<int:label_id>/',
+         LabelDetail.as_view(), name='label_detail'),
+    path('api/projects/<int:project_id>/docs/',
+         DocumentList.as_view(), name='doc_list'),
+    path('api/projects/<int:project_id>/docs/<int:doc_id>/',
+         DocumentDetail.as_view(), name='doc_detail'),
+    path('api/projects/<int:project_id>/docs/<int:doc_id>/entities',
+         EntityList.as_view(), name='entity_list'),
+    path('api/projects/<int:project_id>/docs/<int:doc_id>/entities/<int:entity_id>/',
+         EntityDetail.as_view(), name='entity_detail'),
+    path('api/projects/<int:project_id>/docs/<int:doc_id>/annotations/',
+         AnnotationList.as_view(), name='annotations'),
+    path('api/projects/<int:project_id>/docs/<int:doc_id>/annotations/<int:annotation_id>',
+         AnnotationDetail.as_view(), name='ann'),
     path('projects/', ProjectsView.as_view(), name='projects'),
     path('projects/<int:project_id>/download', DataDownload.as_view(), name='download'),
     path('projects/<int:project_id>/download_file', DataDownloadFile.as_view(), name='download_file'),

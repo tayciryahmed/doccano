@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 
 from .models import Project, Label, Document
 from .permissions import IsAdminUserAndWriteOnly, IsProjectUser, IsOwnAnnotation
-from .serializers import ProjectSerializer, LabelSerializer
+from .serializers import ProjectSerializer, LabelSerializer, DocumentSerializer
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -27,22 +27,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def progress(self, request, pk=None):
         project = self.get_object()
         return Response(project.get_progress(self.request.user))
-
-
-class LabelList(generics.ListCreateAPIView):
-    queryset = Label.objects.all()
-    serializer_class = LabelSerializer
-    pagination_class = None
-    permission_classes = (IsAuthenticated, IsProjectUser, IsAdminUserAndWriteOnly)
-
-    def get_queryset(self):
-        queryset = self.queryset.filter(project=self.kwargs['project_id'])
-
-        return queryset
-
-    def perform_create(self, serializer):
-        project = get_object_or_404(Project, pk=self.kwargs['project_id'])
-        serializer.save(project=project)
 
 
 class ProjectStatsAPI(APIView):
@@ -67,6 +51,22 @@ class ProjectStatsAPI(APIView):
                     'user': {'users': users, 'data': user_data}}
 
         return Response(response)
+
+
+class LabelList(generics.ListCreateAPIView):
+    queryset = Label.objects.all()
+    serializer_class = LabelSerializer
+    pagination_class = None
+    permission_classes = (IsAuthenticated, IsProjectUser, IsAdminUserAndWriteOnly)
+
+    def get_queryset(self):
+        queryset = self.queryset.filter(project=self.kwargs['project_id'])
+
+        return queryset
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(Project, pk=self.kwargs['project_id'])
+        serializer.save(project=project)
 
 
 class LabelDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -109,6 +109,21 @@ class DocumentList(generics.ListCreateAPIView):
         queryset = project.get_documents(is_null).distinct()
 
         return queryset
+
+
+class DocumentDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Document.objects.all()
+    serializer_class = DocumentSerializer
+    lookup_url_kwarg = 'doc_id'
+    permission_classes = (IsAuthenticated, IsProjectUser, IsAdminUserAndWriteOnly)
+
+
+class EntityList(generics.ListCreateAPIView):
+    pass
+
+
+class EntityDetail(generics.RetrieveUpdateDestroyAPIView):
+    pass
 
 
 class AnnotationList(generics.ListCreateAPIView):
