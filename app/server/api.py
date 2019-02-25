@@ -3,10 +3,12 @@ from itertools import chain
 
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import generics, filters
+from rest_framework import generics, filters, status
+from rest_framework.exceptions import ParseError
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.parsers import FileUploadParser, MultiPartParser
 
 from .models import Project, Label, Document
 from .models import SequenceAnnotation
@@ -129,3 +131,63 @@ class EntityDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = SequenceAnnotationSerializer
     lookup_url_kwarg = 'entity_id'
     permission_classes = (IsAuthenticated, IsProjectUser, IsMyEntity)
+
+
+class CoNLLFileUploadAPI(APIView):
+    """Loads data and label from a file.
+
+    Args:
+        filename (str): path to the file.
+        encoding (str): file encoding format.
+        The file format is tab-separated values.
+        A blank line is required at the end of a sentence.
+        For example:
+        ```
+        EU	B-ORG
+        rejects	O
+        German	B-MISC
+        call	O
+        to	O
+        boycott	O
+        British	B-MISC
+        lamb	O
+        .	O
+
+        Peter	B-PER
+        Blackburn	I-PER
+        ...
+        ```
+    """
+    parser_classes = (MultiPartParser,)
+    permission_classes = (IsAuthenticated, IsProjectUser, IsAdminUser)
+
+    def post(self, request, *args, **kwargs):
+        if 'file' not in request.FILES:
+            raise ParseError('Empty content')
+        file_obj = request.FILES['file']
+        self.handle_uploaded_file(file_obj, request, args, kwargs)
+        return Response(status=status.HTTP_201_CREATED)
+
+    def handle_uploaded_file(self, file, request, args, kwargs):
+        project = get_object_or_404(Project, pk=self.kwargs['project_id'])
+        words, tags = [], []
+        for line in file:
+            line = line.decode('utf-8')
+            line = line.strip()
+            if line:
+                word, tag = line.split('\t')
+                words.append(word)
+                tags.append(tag)
+            else:
+                # Write sents and labels into DB(Document and SequenteAnnotation).
+                text = ' '.join(words)
+                s = DocumentSerializer(data={'text': text})
+                s.is_valid(raise_exception=True)
+                s.save(project=project)
+                words, tags = [], []
+
+        if len(words) > 0:
+            text = ' '.join(words)
+            s = DocumentSerializer(data={'text': text})
+            s.is_valid(raise_exception=True)
+            s.save(project=project)
